@@ -92,9 +92,24 @@ canva-mcp-server/
 └── README.md
 ```
 
+## Review Pipeline
+
+This fork was security-hardened through a multi-agent parallel review pipeline built by [The Funkatorium](https://github.com/falcoschaefer99-eng/The-Funkatorium):
+
+| Agent | Role | What they caught |
+|-------|------|-----------------|
+| **Michael** | Senior Security Specialist | Zero-auth MCP endpoints, `0.0.0.0` binding, reflected XSS in OAuth callbacks, CORS misconfiguration, leaked infrastructure IDs |
+| **Reeve** | Code Craft Reviewer | Mock import overriding production code, dead if/else branches, AI-generated docs committed to repo, unused hook subscriptions |
+| **Fischer** | Static Analysis Specialist | 20+ `as any` type assertions, `z.any()` bypassing validation, null-unsafe `window.openai` access |
+| **Nikita** | Dependency Safety Specialist | Exposed Client ID in `.env.example`, dependency bloat analysis, license compatibility audit |
+
+Three audit rounds. 12-point final gate check. All agents run in parallel — independent concerns, no bottleneck.
+
+This is how [MUSE Studio](https://ko-fi.com/falcothebard/shop) builds software.
+
 ## Credit
 
-Based on [EmilyThaHuman/canva-mcp-server](https://github.com/EmilyThaHuman/canva-mcp-server). Security-hardened by The Funkatorium.
+Based on [EmilyThaHuman/canva-mcp-server](https://github.com/EmilyThaHuman/canva-mcp-server). Security-hardened by [The Funkatorium](https://github.com/falcoschaefer99-eng/The-Funkatorium).
 
 ## License
 

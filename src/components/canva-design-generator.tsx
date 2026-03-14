@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { useWidgetProps, useDisplayMode } from '../hooks';
+import { useWidgetProps } from '../hooks';
 import '../styles/index.css';
 import { cn } from '../lib/utils';
 
@@ -22,7 +22,6 @@ const CanvaDesignGenerator: React.FC = () => {
   });
 
   const { candidates, job_id } = props;
-  const displayMode = useDisplayMode();
   const [selectedCandidateId, setSelectedCandidateId] = useState<string | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -30,12 +29,15 @@ const CanvaDesignGenerator: React.FC = () => {
     setSelectedCandidateId(candidate.id);
 
     if (window.parent && window.parent.postMessage) {
+      // NOTE: '*' is intentional — this widget runs inside an iframe hosted by the AI client
+      // (e.g. ChatGPT, Claude), and we cannot know the parent origin at build time.
+      // Callers should verify message.type before acting on received messages.
       window.parent.postMessage({
         type: 'canva-create-from-candidate',
-        data: { 
-          jobId: job_id, 
+        data: {
+          jobId: job_id,
           candidateId: candidate.id,
-          candidate 
+          candidate
         }
       }, '*');
     }
@@ -94,7 +96,7 @@ const CanvaDesignGenerator: React.FC = () => {
               key={candidate.id}
               onClick={() => handleSelect(candidate)}
               className={cn(
-                "flex-shrink-0 w-[192px] h-[192px] rounded-3xl overflow-hidden",
+                "relative flex-shrink-0 w-[192px] h-[192px] rounded-3xl overflow-hidden",
                 "cursor-pointer",
                 "bg-white border-2",
                 isSelected ? "border-purple-500 shadow-lg" : "border-transparent"
@@ -134,11 +136,6 @@ const CanvaDesignGenerator: React.FC = () => {
         </svg>
       </button>
 
-      <style>{`
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
     </div>
   );
 };

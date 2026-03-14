@@ -5,11 +5,14 @@ compatibility_flags = ["nodejs_compat"]
 workers_dev = true
 
 # OAuth tokens storage
+# Run: wrangler kv:namespace create CANVA_TOKENS
+# Then replace YOUR_KV_NAMESPACE_ID below with the ID from that command
 [[kv_namespaces]]
 binding = "CANVA_TOKENS"
-id = "5032a502a5a747ff871af745273977a4"
+id = "YOUR_KV_NAMESPACE_ID"
 
 [vars]
-BASE_URL = "https://canva-mcp-server.reed-b9b.workers.dev"
-CANVA_REDIRECT_URI = "https://canva-mcp-server.reed-b9b.workers.dev/auth/callback"
+# Replace with your own Cloudflare Worker URL after deployment
+BASE_URL = "https://your-worker.your-subdomain.workers.dev"
+CANVA_REDIRECT_URI = "https://your-worker.your-subdomain.workers.dev/auth/callback"
 

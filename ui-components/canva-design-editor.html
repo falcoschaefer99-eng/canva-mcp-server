@@ -213,138 +213,147 @@
     (function() {
       const props = window.__WIDGET_PROPS__ || {};
       const { transaction_id = null, pages = [], content = [] } = props;
-      
+
       const root = document.getElementById('root');
-      
-      // Header
+
+      // Header — static content only
       const header = document.createElement('div');
       header.className = 'editor-header';
-      header.innerHTML = `
-        <div class="editor-title">📝 Design Editor</div>
-        <div class="editor-subtitle">Make changes to your design content</div>
-      `;
+      const editorTitle = document.createElement('div');
+      editorTitle.className = 'editor-title';
+      editorTitle.textContent = 'Design Editor';
+      const editorSubtitle = document.createElement('div');
+      editorSubtitle.className = 'editor-subtitle';
+      editorSubtitle.textContent = 'Make changes to your design content';
+      header.appendChild(editorTitle);
+      header.appendChild(editorSubtitle);
       root.appendChild(header);
-      
+
       // Transaction info
       if (transaction_id) {
         const infoBox = document.createElement('div');
         infoBox.className = 'info-box';
-        infoBox.innerHTML = `
-          <div class="info-box-title">Transaction ID</div>
-          <div class="transaction-id">${transaction_id}</div>
-          <div class="info-box-text" style="margin-top: 8px;">
-            Remember this transaction ID for making edits. Changes are temporary until committed.
-          </div>
-        `;
+
+        const infoTitle = document.createElement('div');
+        infoTitle.className = 'info-box-title';
+        infoTitle.textContent = 'Transaction ID';
+
+        const txIdEl = document.createElement('div');
+        txIdEl.className = 'transaction-id';
+        txIdEl.textContent = transaction_id;
+
+        const infoText = document.createElement('div');
+        infoText.className = 'info-box-text';
+        infoText.style.marginTop = '8px';
+        infoText.textContent = 'Remember this transaction ID for making edits. Changes are temporary until committed.';
+
+        infoBox.appendChild(infoTitle);
+        infoBox.appendChild(txIdEl);
+        infoBox.appendChild(infoText);
         root.appendChild(infoBox);
       }
-      
+
+      // Helper to build a content item row from API data safely
+      function buildContentItem(item) {
+        const contentItem = document.createElement('div');
+        contentItem.className = 'content-item';
+
+        const typeEl = document.createElement('div');
+        typeEl.className = 'content-type';
+        typeEl.textContent = item.type || 'Text';
+
+        const textEl = document.createElement('div');
+        textEl.className = 'content-text';
+        textEl.textContent = item.text || item.value || 'No content';
+
+        contentItem.appendChild(typeEl);
+        contentItem.appendChild(textEl);
+        return contentItem;
+      }
+
       // Content
       const contentDiv = document.createElement('div');
       contentDiv.className = 'editor-content';
-      
+
       if (pages && pages.length > 0) {
         pages.forEach((page, index) => {
           const pageSection = document.createElement('div');
           pageSection.className = 'page-section';
-          
+
           const pageHeader = document.createElement('div');
           pageHeader.className = 'page-header';
-          pageHeader.innerHTML = `
-            <div class="page-title">Page ${index + 1}</div>
-          `;
+          const pageTitleEl = document.createElement('div');
+          pageTitleEl.className = 'page-title';
+          pageTitleEl.textContent = 'Page ' + (index + 1);
+          pageHeader.appendChild(pageTitleEl);
           pageSection.appendChild(pageHeader);
-          
+
           if (page.thumbnail) {
             const thumbnail = document.createElement('img');
             thumbnail.src = page.thumbnail;
             thumbnail.className = 'page-thumbnail';
-            thumbnail.alt = `Page ${index + 1} thumbnail`;
+            thumbnail.alt = 'Page ' + (index + 1) + ' thumbnail';
             pageSection.appendChild(thumbnail);
           }
-          
+
           if (page.content && page.content.length > 0) {
             const contentList = document.createElement('div');
             contentList.className = 'content-list';
-            
-            page.content.forEach(item => {
-              const contentItem = document.createElement('div');
-              contentItem.className = 'content-item';
-              contentItem.innerHTML = `
-                <div class="content-type">${item.type || 'Text'}</div>
-                <div class="content-text">${item.text || item.value || 'No content'}</div>
-              `;
-              contentList.appendChild(contentItem);
-            });
-            
+            page.content.forEach(item => contentList.appendChild(buildContentItem(item)));
             pageSection.appendChild(contentList);
           }
-          
+
           contentDiv.appendChild(pageSection);
         });
       } else if (content && content.length > 0) {
         const contentList = document.createElement('div');
         contentList.className = 'content-list';
-        
-        content.forEach(item => {
-          const contentItem = document.createElement('div');
-          contentItem.className = 'content-item';
-          contentItem.innerHTML = `
-            <div class="content-type">${item.type || 'Text'}</div>
-            <div class="content-text">${item.text || item.value || 'No content'}</div>
-          `;
-          contentList.appendChild(contentItem);
-        });
-        
+        content.forEach(item => contentList.appendChild(buildContentItem(item)));
         contentDiv.appendChild(contentList);
       } else {
         const infoBox = document.createElement('div');
         infoBox.className = 'info-box';
-        infoBox.innerHTML = `
-          <div class="info-box-title">Ready to Edit</div>
-          <div class="info-box-text">
-            Use the perform-editing-operations tool to make changes to this design.
-            All changes are temporary until you commit the transaction.
-          </div>
-        `;
+
+        const infoTitle = document.createElement('div');
+        infoTitle.className = 'info-box-title';
+        infoTitle.textContent = 'Ready to Edit';
+
+        const infoText = document.createElement('div');
+        infoText.className = 'info-box-text';
+        infoText.textContent = 'Use the perform-editing-operations tool to make changes to this design. All changes are temporary until you commit the transaction.';
+
+        infoBox.appendChild(infoTitle);
+        infoBox.appendChild(infoText);
         contentDiv.appendChild(infoBox);
       }
-      
+
       root.appendChild(contentDiv);
-      
-      // Action bar
+
+      // Action bar — static content only
       if (transaction_id) {
         const actionBar = document.createElement('div');
         actionBar.className = 'action-bar';
-        actionBar.innerHTML = `
-          <button class="action-button primary" data-action="commit">
-            💾 Commit Changes
-          </button>
-          <button class="action-button" data-action="preview">
-            👁️ Preview
-          </button>
-          <button class="action-button danger" data-action="cancel">
-            ❌ Cancel & Discard
-          </button>
-        `;
-        
-        // Add event listeners
-        actionBar.querySelectorAll('.action-button').forEach(button => {
-          button.addEventListener('click', () => {
-            const action = button.getAttribute('data-action');
-            
+
+        [
+          { action: 'commit', label: 'Commit Changes', cls: 'action-button primary' },
+          { action: 'preview', label: 'Preview', cls: 'action-button' },
+          { action: 'cancel', label: 'Cancel & Discard', cls: 'action-button danger' },
+        ].forEach(({ action, label, cls }) => {
+          const btn = document.createElement('button');
+          btn.className = cls;
+          btn.dataset.action = action;
+          btn.textContent = label;
+          btn.addEventListener('click', () => {
             if (window.parent && window.parent.postMessage) {
               window.parent.postMessage({
                 type: 'canva-editing-action',
-                data: { 
-                  action, 
-                  transactionId: transaction_id 
-                }
+                data: { action, transactionId: transaction_id }
               }, '*');
             }
           });
+          actionBar.appendChild(btn);
         });
-        
+
         root.appendChild(actionBar);
       }
     })();

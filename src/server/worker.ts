@@ -1,15 +1,19 @@
 /**
- * Cloudflare Worker for Canva MCP Server
- * 
- * IMPORTANT: This server requires OAuth setup!
- * 1. Create a Canva app at https://www.canva.com/developers/
- * 2. Set CANVA_CLIENT_ID, CANVA_CLIENT_SECRET in Cloudflare environment
- * 3. Set CANVA_REDIRECT_URI to your Cloudflare Worker URL + /auth/callback
- * 4. Create a KV namespace for storing OAuth tokens: `wrangler kv:namespace create CANVA_TOKENS`
- * 5. Add the namespace binding to wrangler.toml
- * 
- * This worker provides a simplified version that returns placeholder data
- * until OAuth is properly configured.
+ * DEMO ONLY — Cloudflare Worker variant
+ * This worker is a development/demo stub. For production use,
+ * use the Node.js server (server.ts) which includes:
+ * - Authentication middleware
+ * - Origin-restricted CORS
+ * - HTML-encoded error outputs
+ *
+ * To use the full server: see README.md Quick Start section.
+ *
+ * If you still want to deploy this worker, you'll need:
+ * 1. A Canva app at https://www.canva.com/developers/
+ * 2. CANVA_CLIENT_ID, CANVA_CLIENT_SECRET in Cloudflare environment
+ * 3. CANVA_REDIRECT_URI set to your Worker URL + /auth/callback
+ * 4. A KV namespace: `wrangler kv:namespace create CANVA_TOKENS`
+ * 5. The namespace binding added to wrangler.toml
  */
 
 import { z } from "zod";
@@ -61,17 +65,75 @@ const SEARCH_WIDGET_HTML = `<!DOCTYPE html>
     document.getElementById('search-stats').textContent = (data.designs?.length || 0) + ' designs found';
     
     if (data.requiresAuth) {
-      document.getElementById('oauth-notice').innerHTML = '<div class="oauth-notice"><h3>🔒 OAuth Setup Required</h3><p>To access your Canva designs, you need to set up OAuth authentication. Set <code>CANVA_CLIENT_ID</code>, <code>CANVA_CLIENT_SECRET</code>, and configure a KV namespace in your Cloudflare Worker. Visit the <a href="https://www.canva.com/developers/" target="_blank">Canva Developers</a> portal to create your app.</p></div>';
+      const notice = document.getElementById('oauth-notice');
+      const wrapper = document.createElement('div');
+      wrapper.className = 'oauth-notice';
+      const heading = document.createElement('h3');
+      heading.textContent = 'OAuth Setup Required';
+      const para = document.createElement('p');
+      para.textContent = 'To access your Canva designs, set up OAuth authentication. Set ';
+      const code1 = document.createElement('code');
+      code1.textContent = 'CANVA_CLIENT_ID';
+      const mid = document.createTextNode(', ');
+      const code2 = document.createElement('code');
+      code2.textContent = 'CANVA_CLIENT_SECRET';
+      const end = document.createTextNode(', and configure a KV namespace in your Cloudflare Worker. Visit the ');
+      const link = document.createElement('a');
+      link.href = 'https://www.canva.com/developers/';
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = 'Canva Developers';
+      const tail = document.createTextNode(' portal to create your app.');
+      para.appendChild(code1);
+      para.appendChild(mid);
+      para.appendChild(code2);
+      para.appendChild(end);
+      para.appendChild(link);
+      para.appendChild(tail);
+      wrapper.appendChild(heading);
+      wrapper.appendChild(para);
+      notice.appendChild(wrapper);
     }
     
     const grid = document.getElementById('designs-grid');
     (data.designs || []).forEach(design => {
       const card = document.createElement('div');
       card.className = 'design-card';
-      card.innerHTML = '<img src="' + (design.thumbnail || '') + '" class="design-thumbnail" onerror="this.style.background=\\'linear-gradient(135deg, #00C4CC 0%, #7B61FF 100%)\\';this.src=\\'\\'">'+
-        '<div class="design-info"><div class="design-title">' + design.title + '</div>'+
-        '<div class="design-meta">Type: ' + (design.type || 'Design') + '</div>'+
-        '<div class="design-actions"><a href="' + design.url + '" target="_blank" class="btn btn-primary">Open in Canva</a></div></div>';
+
+      const img = document.createElement('img');
+      img.src = design.thumbnail || '';
+      img.className = 'design-thumbnail';
+      img.onerror = function() {
+        (this as HTMLImageElement).style.background = 'linear-gradient(135deg, #00C4CC 0%, #7B61FF 100%)';
+        (this as HTMLImageElement).src = '';
+      };
+
+      const info = document.createElement('div');
+      info.className = 'design-info';
+
+      const titleEl = document.createElement('div');
+      titleEl.className = 'design-title';
+      titleEl.textContent = design.title;
+
+      const metaEl = document.createElement('div');
+      metaEl.className = 'design-meta';
+      metaEl.textContent = 'Type: ' + (design.type || 'Design');
+
+      const actions = document.createElement('div');
+      actions.className = 'design-actions';
+
+      const link = document.createElement('a');
+      link.href = design.url;
+      link.target = '_blank';
+      link.className = 'btn btn-primary';
+      link.textContent = 'Open in Canva';
+
+      actions.appendChild(link);
+      info.appendChild(titleEl);
+      info.appendChild(metaEl);
+      info.appendChild(actions);
+      card.appendChild(img);
+      card.appendChild(info);
       grid.appendChild(card);
     });
   </script>
@@ -248,14 +310,50 @@ export default {
       return new Response("Widget not found", { status: 404 });
     }
 
+    // OAuth authorization endpoint
+    if (url.pathname === "/auth/authorize" && request.method === "GET") {
+      if (!isOAuthConfigured(env)) {
+        return Response.json({
+          error: "OAuth not configured. Set CANVA_CLIENT_ID, CANVA_CLIENT_SECRET, and create CANVA_TOKENS KV namespace.",
+        }, { status: 500 });
+      }
+
+      const state = crypto.randomUUID();
+
+      // Store pending state in KV so we can validate it in the callback (expires in 10 min)
+      await env.CANVA_TOKENS.put(
+        `pending_state:${state}`,
+        JSON.stringify({ createdAt: Date.now() }),
+        { expirationTtl: 600 }
+      );
+
+      const authUrl = new URL("https://www.canva.com/api/oauth/authorize");
+      authUrl.searchParams.set("client_id", env.CANVA_CLIENT_ID);
+      authUrl.searchParams.set("redirect_uri", env.CANVA_REDIRECT_URI);
+      authUrl.searchParams.set("response_type", "code");
+      authUrl.searchParams.set("scope", "design:read design:content:read folder:read");
+      authUrl.searchParams.set("state", state);
+
+      return Response.redirect(authUrl.toString(), 302);
+    }
+
     // OAuth callback endpoint
     if (url.pathname === "/auth/callback" && request.method === "GET") {
       const code = url.searchParams.get("code");
       const state = url.searchParams.get("state");
 
-      if (!code || !isOAuthConfigured(env)) {
-        return new Response("OAuth not configured or missing code", { status: 400 });
+      if (!code || !state || !isOAuthConfigured(env)) {
+        return new Response("OAuth not configured or missing code/state", { status: 400 });
       }
+
+      // Validate state against stored pending states (CSRF protection)
+      const pendingStateKey = `pending_state:${state}`;
+      const pendingState = await env.CANVA_TOKENS.get(pendingStateKey);
+      if (!pendingState) {
+        return new Response("Invalid or expired state parameter", { status: 400 });
+      }
+      // Consume the pending state immediately
+      await env.CANVA_TOKENS.delete(pendingStateKey);
 
       try {
         // Exchange code for token
@@ -278,7 +376,7 @@ export default {
         }
 
         const tokens: any = await tokenResponse.json();
-        
+
         // Store tokens in KV (use state as session ID)
         await env.CANVA_TOKENS.put(
           `session:${state}`,
@@ -295,28 +393,9 @@ export default {
         });
       } catch (error) {
         console.error("[worker.ts] --> OAuth callback error:", error);
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        return new Response(`OAuth error: ${errorMessage}`, { status: 500 });
+        // Do not reflect error details to the client — log only
+        return new Response("OAuth error. Check server logs for details.", { status: 500 });
       }
-    }
-
-    // OAuth authorization endpoint
-    if (url.pathname === "/auth/authorize" && request.method === "GET") {
-      if (!isOAuthConfigured(env)) {
-        return Response.json({
-          error: "OAuth not configured. Set CANVA_CLIENT_ID, CANVA_CLIENT_SECRET, and create CANVA_TOKENS KV namespace.",
-        }, { status: 500 });
-      }
-
-      const state = crypto.randomUUID();
-      const authUrl = new URL("https://www.canva.com/api/oauth/authorize");
-      authUrl.searchParams.set("client_id", env.CANVA_CLIENT_ID);
-      authUrl.searchParams.set("redirect_uri", env.CANVA_REDIRECT_URI);
-      authUrl.searchParams.set("response_type", "code");
-      authUrl.searchParams.set("scope", "design:read design:content:read folder:read");
-      authUrl.searchParams.set("state", state);
-
-      return Response.redirect(authUrl.toString(), 302);
     }
 
     // MCP SSE endpoint
@@ -368,15 +447,10 @@ export default {
           let designs;
           let requiresAuth = false;
 
-          if (oauthConfigured) {
-            // Try to get session token (this would come from auth flow)
-            // For now, we'll use mock data and show OAuth setup message
-            designs = getMockDesigns(parsed.query);
-            requiresAuth = true;
-          } else {
-            designs = getMockDesigns(parsed.query);
-            requiresAuth = true;
-          }
+          // Both branches return mock data — this worker is a demo stub.
+          // Real token retrieval would go here once OAuth is wired up.
+          designs = getMockDesigns(parsed.query);
+          requiresAuth = true;
 
           return Response.json({
             content: [

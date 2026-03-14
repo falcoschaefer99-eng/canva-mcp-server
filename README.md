@@ -1,568 +1,101 @@
-# Canva MCP Server
+# Canva MCP Server (Security-Hardened Fork)
 
-A comprehensive Model Context Protocol (MCP) server for Canva integration with ChatGPT Apps SDK. This server enables AI assistants to interact with Canva's design platform, including searching designs, generating AI designs, editing content, managing folders, and collaborating through comments.
+A Model Context Protocol (MCP) server for Canva integration. Connect Claude Code or any MCP-compatible AI client to your Canva account — search designs, generate AI designs, edit content, manage folders, and collaborate through comments.
 
-## Features
-
-### 🎨 Design Management
-- **Search Designs**: Search docs, presentations, videos, whiteboards, sheets, and other designs
-- **Get Design Details**: Retrieve detailed information about specific designs
-- **Get Design Pages**: List all pages in a design with thumbnails
-- **Get Design Content**: Extract text content from designs
-
-### ✨ AI Design Generation
-- **Generate Designs**: Create AI-generated design candidates from natural language descriptions
-- **Create from Candidate**: Convert AI-generated candidates into editable Canva designs
-
-### ✏️ Design Editing
-- **Start Editing Transaction**: Begin an editing session for a design
-- **Perform Operations**: Update titles, replace text, and replace media
-- **Commit Changes**: Save all changes made during an editing transaction
-- **Cancel Transaction**: Discard all changes
-- **Get Thumbnails**: Retrieve updated page thumbnails during editing
-
-### 📁 Folder Management
-- **Create Folders**: Organize designs with folders (root or nested)
-- **Move Items**: Move designs, folders, and images between folders
-- **List Folder Items**: Browse folder contents with filtering
-
-### 💬 Collaboration
-- **Comment on Designs**: Add comments to designs
-- **List Comments**: View all comments with resolution filtering
-- **Reply to Comments**: Participate in design discussions
-- **List Replies**: View all replies to a comment thread
-
-### 🖼️ Asset Management
-- **Upload from URL**: Import images and videos from URLs
-- **Get Assets**: Retrieve asset metadata including thumbnails
-
-## Prerequisites
-
-- Node.js 18 or later
-- A Canva Developer account
-- Canva API credentials (Client ID and Client Secret)
-
-## Getting Canva API Credentials
-
-1. Visit the [Canva Developers Portal](https://www.canva.com/developers/apps)
-2. Create a new app or select an existing one
-3. Navigate to the "Authentication" section
-4. Note your **Client ID** and **Client Secret**
-5. Add `http://localhost:8001/auth/callback` to your redirect URIs
-
-### Required OAuth Scopes
-
-The server requests the following scopes:
-- `asset:read` - Read access to user's assets
-- `asset:write` - Upload and manage assets
-- `comment:read` - Read comments on designs
-- `comment:write` - Create and reply to comments
-- `design:content:read` - Read design content
-- `design:content:write` - Edit design content
-- `design:meta:read` - Read design metadata
-- `folder:read` - Read folder structure
-- `folder:write` - Create and manage folders
-- `profile:read` - Read user profile information
-
-## Installation
-
-### Quick Start
+## Quick Start
 
 ```bash
-chmod +x quick-start.sh
-./quick-start.sh
+git clone https://github.com/your-username/canva-mcp-server.git
+cd canva-mcp-server
+npm install
+cp .env.example .env
+# Edit .env with your Canva credentials (see below)
+./start.sh
 ```
 
-### Manual Installation
+### Get Canva Credentials
 
-1. **Clone or download this repository**
+1. Visit [https://www.canva.com/developers/](https://www.canva.com/developers/)
+2. Create a new app
+3. Under Authentication, copy your **Client ID** and **Client Secret**
+4. Add `http://127.0.0.1:8001/auth/callback` as a redirect URI
+5. Enable these OAuth scopes: `asset:read`, `asset:write`, `comment:read`, `comment:write`, `design:content:read`, `design:content:write`, `design:meta:read`, `folder:read`, `folder:write`, `profile:read`
 
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+Set your credentials in `.env`:
 
-3. **Set environment variables:**
-   ```bash
-   export CANVA_CLIENT_ID='your_client_id_here'
-   export CANVA_CLIENT_SECRET='your_client_secret_here'
-   export CANVA_REDIRECT_URI='http://localhost:8001/auth/callback'  # Optional
-   ```
-
-4. **Build the project:**
-   ```bash
-   npm run build
-   ```
-
-5. **Start the server:**
-   ```bash
-   npm start
-   ```
-
-   For development with auto-reload:
-   ```bash
-   npm run dev
-   ```
-
-## Usage
-
-### Server Endpoints
-
-Once running, the server provides:
-
-- **SSE Endpoint**: `http://localhost:8001/mcp`
-- **Message Post**: `http://localhost:8001/mcp/messages?sessionId={sessionId}`
-- **OAuth Callback**: `http://localhost:8001/auth/callback`
-
-### Authentication Flow
-
-1. When a tool is first called without authentication, the server returns an OAuth authorization URL
-2. The user visits this URL and authorizes the app
-3. Canva redirects back to the callback URL with an authorization code
-4. The server exchanges the code for access and refresh tokens
-5. Subsequent requests use the stored access token (automatically refreshed when expired)
-
-### Available Tools
-
-#### 1. upload-asset-from-url
-Upload assets from URLs into Canva.
-
-```json
-{
-  "name": "My Image",
-  "url": "https://example.com/image.jpg"
-}
+```
+CANVA_CLIENT_ID=your_client_id_here
+CANVA_CLIENT_SECRET=your_client_secret_here
+CANVA_REDIRECT_URI=http://127.0.0.1:8001/auth/callback
 ```
 
-#### 2. search-designs
-Search for designs by title or content.
+## Claude Code Setup
 
-```json
-{
-  "query": "Marketing Presentation",
-  "sortBy": "relevance",
-  "ownershipFilter": "any"
-}
+```bash
+claude mcp add --transport sse --scope user canva http://127.0.0.1:8001/mcp
 ```
 
-#### 3. get-design
-Get detailed information about a specific design.
+Then start the server (`./start.sh`) before opening Claude Code. On first tool call, the server returns an OAuth URL — visit it in your browser to authenticate.
 
-```json
-{
-  "designId": "DAGQqAoFpJI"
-}
-```
+## Available Tools
 
-#### 4. get-design-pages
-List all pages in a design.
+| Tool | Description |
+|------|-------------|
+| `search-designs` | Search designs by title, sort order, and ownership |
+| `get-design` | Get metadata for a specific design |
+| `get-design-pages` | List all pages in a design with thumbnails |
+| `get-design-content` | Extract all text content from a design |
+| `generate-design` | Generate AI design candidates from a text description |
+| `create-design-from-candidate` | Convert an AI candidate into an editable design |
+| `start-editing-transaction` | Begin an editing session, returns a transaction ID |
+| `perform-editing-operations` | Update title, replace text, or replace media |
+| `commit-editing-transaction` | Save all changes in a transaction |
+| `cancel-editing-transaction` | Discard all changes in a transaction |
+| `get-design-thumbnail` | Get a page thumbnail during editing |
+| `create-folder` | Create a folder (root or nested) |
+| `move-item-to-folder` | Move a design or folder into another folder |
+| `list-folder-items` | Browse folder contents with filtering |
+| `comment-on-design` | Add a comment to a design |
+| `list-comments` | List all comments on a design |
+| `reply-to-comment` | Reply to a comment thread |
+| `list-replies` | List all replies to a comment |
+| `upload-asset-from-url` | Import an image or video from a URL |
+| `get-assets` | Retrieve metadata for multiple assets |
 
-```json
-{
-  "designId": "DAGQqAoFpJI",
-  "offset": 0,
-  "limit": 10
-}
-```
+## Security
 
-#### 5. get-design-content
-Extract text content from a design.
+This fork hardens the original with:
 
-```json
-{
-  "designId": "DAGQqAoFpJI"
-}
-```
+- **127.0.0.1 binding** — server listens on loopback only, not exposed to the network
+- **Auth middleware** — optional Bearer token (`MCP_AUTH_TOKEN` in `.env`) secures the MCP endpoint
+- **XSS protection** — all UI widget templates use DOM API construction instead of `innerHTML` with API data
+- **CORS allowlist** — configurable via `CORS_ORIGINS` env var, no wildcard in production paths
+- **Input validation** — Zod schemas on all tool inputs, size limits enforced
+- **Error sanitization** — Canva API errors logged server-side, not reflected to clients
 
-#### 6. create-folder
-Create a new folder.
+The `src/server/worker.ts` file is a development/demo stub for Cloudflare Workers deployment. For production, use the Node.js server (`src/server/server.ts`).
 
-```json
-{
-  "name": "Marketing Materials",
-  "parentFolderId": "FABCdef123"
-}
-```
-
-#### 7. move-item-to-folder
-Move items to a folder.
-
-```json
-{
-  "itemId": "DAGQqAoFpJI",
-  "folderId": "FABCdef123"
-}
-```
-
-#### 8. list-folder-items
-List items in a folder.
-
-```json
-{
-  "folderId": "FABCdef123",
-  "itemType": "design"
-}
-```
-
-#### 9. comment-on-design
-Add a comment to a design.
-
-```json
-{
-  "designId": "DAGQqAoFpJI",
-  "message": "Great work on this design!"
-}
-```
-
-#### 10. list-comments
-List all comments on a design.
-
-```json
-{
-  "designId": "DAGQqAoFpJI",
-  "commentResolution": "unresolved"
-}
-```
-
-#### 11. list-replies
-List replies to a comment.
-
-```json
-{
-  "designId": "DAGQqAoFpJI",
-  "threadId": "CTHvwx789"
-}
-```
-
-#### 12. reply-to-comment
-Reply to an existing comment.
-
-```json
-{
-  "designId": "DAGQqAoFpJI",
-  "threadId": "CTHvwx789",
-  "message": "Thanks for the feedback!"
-}
-```
-
-#### 13. generate-design
-Generate AI design candidates.
-
-```json
-{
-  "query": "Create a modern social media post for a coffee shop with warm colors and minimalist design",
-  "assetIds": ["ASTxyz123", "ASTabc456"]
-}
-```
-
-**Important**: Always include full context in the query parameter, as the tool doesn't have access to previous requests.
-
-#### 14. create-design-from-candidate
-Convert an AI-generated candidate into an editable design.
-
-```json
-{
-  "jobId": "JOB123abc",
-  "candidateId": "CAN456def"
-}
-```
-
-#### 15. start-editing-transaction
-Start an editing session for a design.
-
-```json
-{
-  "designId": "DAGQqAoFpJI"
-}
-```
-
-Returns a `transaction_id` that must be used in subsequent editing operations.
-
-#### 16. perform-editing-operations
-Make changes to a design.
-
-```json
-{
-  "transactionId": "TXNabc123",
-  "operations": [
-    {
-      "type": "update_title",
-      "title": "New Design Title"
-    },
-    {
-      "type": "replace_text",
-      "page_index": 0,
-      "element_id": "ELMxyz789",
-      "text": "Updated text content"
-    }
-  ]
-}
-```
-
-#### 17. commit-editing-transaction
-Save all changes made during an editing transaction.
-
-```json
-{
-  "transactionId": "TXNabc123"
-}
-```
-
-**Critical**: Always ask for user approval before committing changes.
-
-#### 18. cancel-editing-transaction
-Discard all changes made during an editing transaction.
-
-```json
-{
-  "transactionId": "TXNabc123"
-}
-```
-
-#### 19. get-design-thumbnail
-Get thumbnail for a specific page during editing.
-
-```json
-{
-  "transactionId": "TXNabc123",
-  "pageIndex": 0
-}
-```
-
-#### 20. get-assets
-Retrieve metadata for multiple assets.
-
-```json
-{
-  "assetIds": ["ASTxyz123", "ASTabc456"]
-}
-```
-
-### UI Widgets
-
-The server includes three interactive UI widgets:
-
-1. **Search Designs Widget** (`canva-search-designs.html`)
-   - Displays search results with thumbnails
-   - Interactive design cards
-   - Pagination support
-   - Click to open designs in Canva
-
-2. **Design Generator Widget** (`canva-design-generator.html`)
-   - Shows AI-generated design candidates
-   - Preview and selection interface
-   - One-click design creation
-
-3. **Design Editor Widget** (`canva-design-editor.html`)
-   - Shows editable content and thumbnails
-   - Transaction management UI
-   - Commit/cancel controls
-
-## Development
-
-### Project Structure
+## Project Structure
 
 ```
 canva-mcp-server/
 ├── src/
-│   └── server.ts           # Main server implementation
-├── ui-components/
-│   ├── canva-search-designs.html
-│   ├── canva-design-generator.html
-│   └── canva-design-editor.html
-├── package.json
-├── tsconfig.json
-├── quick-start.sh
+│   └── server/
+│       ├── server.ts          # Main Node.js server
+│       └── worker.ts          # Cloudflare Worker demo stub
+├── src/components/            # React widget components (compiled to assets/)
+├── ui-components/             # Standalone HTML widget templates
+├── assets/                    # Compiled widget output (generated by npm run build)
+├── .env.example               # Environment variable template
+├── start.sh                   # Start script
+├── quick-start.sh             # First-run setup script
 └── README.md
 ```
 
-### Building
+## Credit
 
-```bash
-npm run build
-```
-
-### Type Checking
-
-```bash
-npm run typecheck
-```
-
-### Running in Development
-
-```bash
-npm run dev
-```
-
-## API Reference
-
-### Canva Connect API
-
-This server uses the [Canva Connect API](https://www.canva.com/developers/docs/connect-api/). Key endpoints:
-
-- **Designs**: `/v1/designs` - Design management
-- **Assets**: `/v1/assets`, `/v1/url-asset-uploads` - Asset operations
-- **Folders**: `/v1/folders` - Folder management
-- **Comments**: `/v1/designs/{id}/comments` - Collaboration
-- **Design Generation**: `/v1/designs/generate` - AI generation
-- **Design Editing**: `/v1/designs/{id}/edit` - Content editing
-
-### OAuth 2.0 with PKCE
-
-The server implements OAuth 2.0 with Proof Key for Code Exchange (PKCE) for enhanced security:
-
-1. Generate code verifier and challenge
-2. Redirect user to authorization URL
-3. Receive authorization code via callback
-4. Exchange code for access and refresh tokens
-5. Automatically refresh expired tokens
-
-## Security Considerations
-
-- **Token Storage**: Tokens are stored in memory. For production, use a secure database.
-- **State Management**: OAuth state is validated to prevent CSRF attacks.
-- **Token Refresh**: Access tokens are automatically refreshed with a 5-minute buffer.
-- **PKCE**: Uses PKCE for enhanced OAuth security.
-
-## Troubleshooting
-
-### "Missing scopes: [asset:write]" Error
-
-If you receive this error:
-1. Disconnect the integration from Canva
-2. Reconnect by visiting the OAuth URL again
-3. The new token will include the required scope
-
-### OAuth Callback Issues
-
-Ensure your redirect URI matches exactly:
-- Server default: `http://localhost:8001/auth/callback`
-- Must be added to your Canva app settings
-- Use the same URI in your environment variable
-
-### Port Already in Use
-
-If port 8001 is in use, change it:
-```bash
-export PORT=8002
-npm start
-```
-
-### Token Expiration
-
-Access tokens expire after a certain period. The server automatically refreshes them using the refresh token. If you see authentication errors:
-1. Clear the session
-2. Re-authenticate by calling any tool
-
-## Rate Limits
-
-Canva API has rate limits:
-- **Asset Uploads**: 30 requests per minute per user
-- Other endpoints have their own limits (refer to Canva API documentation)
-
-The server doesn't implement rate limiting - consider adding this for production use.
-
-## Examples
-
-### Example 1: Search and Edit a Design
-
-```javascript
-// 1. Search for designs
-{
-  "name": "search-designs",
-  "arguments": {
-    "query": "Marketing Presentation",
-    "sortBy": "relevance"
-  }
-}
-
-// 2. Start editing transaction
-{
-  "name": "start-editing-transaction",
-  "arguments": {
-    "designId": "DAGQqAoFpJI"
-  }
-}
-
-// 3. Perform edits
-{
-  "name": "perform-editing-operations",
-  "arguments": {
-    "transactionId": "TXNabc123",
-    "operations": [
-      {
-        "type": "update_title",
-        "title": "Updated Marketing Presentation"
-      }
-    ]
-  }
-}
-
-// 4. Commit changes (after user approval)
-{
-  "name": "commit-editing-transaction",
-  "arguments": {
-    "transactionId": "TXNabc123"
-  }
-}
-```
-
-### Example 2: Generate and Create AI Design
-
-```javascript
-// 1. Generate design candidates
-{
-  "name": "generate-design",
-  "arguments": {
-    "query": "Create a vibrant Instagram post for a summer sale with beach themes, bright colors, and bold typography. Include space for a discount percentage and call-to-action button."
-  }
-}
-
-// 2. Create design from selected candidate
-{
-  "name": "create-design-from-candidate",
-  "arguments": {
-    "jobId": "JOB123abc",
-    "candidateId": "CAN456def"
-  }
-}
-```
-
-## Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+Based on [EmilyThaHuman/canva-mcp-server](https://github.com/EmilyThaHuman/canva-mcp-server). Security-hardened by The Funkatorium.
 
 ## License
 
-MIT License - See LICENSE file for details
-
-## Resources
-
-- [Canva Developers Portal](https://www.canva.com/developers/)
-- [Canva Connect API Documentation](https://www.canva.com/developers/docs/connect-api/)
-- [Canva Apps SDK](https://www.canva.com/developers/docs/apps-sdk/)
-- [Model Context Protocol](https://modelcontextprotocol.io/)
-- [ChatGPT Apps SDK](https://platform.openai.com/docs/apps)
-
-## Support
-
-For issues and questions:
-- Canva API: [Canva Developers Community](https://www.canva.com/developers/community/)
-- This Server: Create an issue in the repository
-
-## Changelog
-
-### Version 1.0.0
-- Initial release
-- Full Canva Connect API integration
-- OAuth 2.0 with PKCE support
-- 20 tools covering all major Canva operations
-- 3 interactive UI widgets
-- Automatic token refresh
-- Comprehensive error handling
+MIT — see [LICENSE](./LICENSE)

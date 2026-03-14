@@ -7,8 +7,18 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-  
+
   .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Used by canva-design-generator carousel */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
 

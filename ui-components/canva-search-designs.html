@@ -249,121 +249,181 @@
   
   <script>
     (function() {
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+
       const props = window.__WIDGET_PROPS__ || {};
       const { query = '', designs = [], continuation = null } = props;
-      
+
       const root = document.getElementById('root');
-      
+
       // Header
       if (query) {
         const header = document.createElement('div');
         header.className = 'search-header';
-        header.innerHTML = `
-          <div class="search-query">"${query}"</div>
-          <div class="search-stats">${designs.length} designs found</div>
-        `;
+
+        const queryEl = document.createElement('div');
+        queryEl.className = 'search-query';
+        queryEl.textContent = '"' + query + '"';
+
+        const statsEl = document.createElement('div');
+        statsEl.className = 'search-stats';
+        statsEl.textContent = designs.length + ' designs found';
+
+        header.appendChild(queryEl);
+        header.appendChild(statsEl);
         root.appendChild(header);
       }
-      
+
       if (designs && designs.length > 0) {
         const grid = document.createElement('div');
         grid.className = 'designs-grid';
-        
+
         designs.forEach(design => {
           const card = document.createElement('div');
           card.className = 'design-card';
-          
-          const formattedDate = design.updated_at 
-            ? new Date(design.updated_at).toLocaleDateString('en-US', { 
-                month: 'short', 
-                day: 'numeric', 
-                year: 'numeric' 
+
+          const formattedDate = design.updated_at
+            ? new Date(design.updated_at).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric'
               })
             : 'Unknown date';
-          
-          card.innerHTML = `
-            <div class="design-thumbnail-container">
-              <img 
-                src="${design.thumbnail?.url || 'https://via.placeholder.com/400x225?text=No+Preview'}" 
-                class="design-thumbnail" 
-                alt="${design.title}"
-                loading="lazy"
-              >
-              ${design.doctype_name ? `<div class="design-type-badge">${design.doctype_name}</div>` : ''}
-            </div>
-            <div class="design-info">
-              <div class="design-title">${design.title || 'Untitled Design'}</div>
-              <div class="design-meta">
-                <div class="design-meta-row">
-                  <svg class="design-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                  </svg>
-                  <span>Updated: ${formattedDate}</span>
-                </div>
-              </div>
-              <div class="design-actions">
-                <button class="action-button primary" data-action="open" data-design-id="${design.id}" data-url="${design.urls?.edit_url || design.urls?.view_url}">
-                  Open
-                </button>
-                <button class="action-button" data-action="info" data-design-id="${design.id}">
-                  Details
-                </button>
-              </div>
-            </div>
-          `;
-          
-          // Add click handlers
-          card.querySelectorAll('.action-button').forEach(button => {
+
+          // Thumbnail container
+          const thumbContainer = document.createElement('div');
+          thumbContainer.className = 'design-thumbnail-container';
+
+          const img = document.createElement('img');
+          img.src = design.thumbnail?.url || 'https://via.placeholder.com/400x225?text=No+Preview';
+          img.className = 'design-thumbnail';
+          img.alt = design.title || 'Design thumbnail';
+          img.loading = 'lazy';
+          thumbContainer.appendChild(img);
+
+          if (design.doctype_name) {
+            const badge = document.createElement('div');
+            badge.className = 'design-type-badge';
+            badge.textContent = design.doctype_name;
+            thumbContainer.appendChild(badge);
+          }
+
+          card.appendChild(thumbContainer);
+
+          // Info section
+          const info = document.createElement('div');
+          info.className = 'design-info';
+
+          const titleEl = document.createElement('div');
+          titleEl.className = 'design-title';
+          titleEl.textContent = design.title || 'Untitled Design';
+          info.appendChild(titleEl);
+
+          const meta = document.createElement('div');
+          meta.className = 'design-meta';
+
+          const metaRow = document.createElement('div');
+          metaRow.className = 'design-meta-row';
+
+          const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+          svg.setAttribute('class', 'design-icon');
+          svg.setAttribute('fill', 'none');
+          svg.setAttribute('stroke', 'currentColor');
+          svg.setAttribute('viewBox', '0 0 24 24');
+          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          path.setAttribute('stroke-linecap', 'round');
+          path.setAttribute('stroke-linejoin', 'round');
+          path.setAttribute('stroke-width', '2');
+          path.setAttribute('d', 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z');
+          svg.appendChild(path);
+
+          const dateSpan = document.createElement('span');
+          dateSpan.textContent = 'Updated: ' + formattedDate;
+
+          metaRow.appendChild(svg);
+          metaRow.appendChild(dateSpan);
+          meta.appendChild(metaRow);
+          info.appendChild(meta);
+
+          // Action buttons
+          const actions = document.createElement('div');
+          actions.className = 'design-actions';
+
+          const openBtn = document.createElement('button');
+          openBtn.className = 'action-button primary';
+          openBtn.dataset.action = 'open';
+          openBtn.dataset.designId = design.id;
+          openBtn.dataset.url = design.urls?.edit_url || design.urls?.view_url || '';
+          openBtn.textContent = 'Open';
+          actions.appendChild(openBtn);
+
+          const infoBtn = document.createElement('button');
+          infoBtn.className = 'action-button';
+          infoBtn.dataset.action = 'info';
+          infoBtn.dataset.designId = design.id;
+          infoBtn.textContent = 'Details';
+          actions.appendChild(infoBtn);
+
+          info.appendChild(actions);
+          card.appendChild(info);
+
+          // Button click handlers
+          actions.querySelectorAll('.action-button').forEach(button => {
             button.addEventListener('click', (e) => {
               e.stopPropagation();
               const action = button.getAttribute('data-action');
               const designId = button.getAttribute('data-design-id');
               const url = button.getAttribute('data-url');
-              
+
               if (window.parent && window.parent.postMessage) {
                 window.parent.postMessage({
                   type: 'canva-design-action',
-                  data: { 
-                    action, 
-                    designId, 
-                    url,
-                    design 
-                  }
+                  data: { action, designId, url, design }
                 }, '*');
               }
             });
           });
-          
+
           // Card click handler
           card.addEventListener('click', () => {
             if (window.parent && window.parent.postMessage) {
               window.parent.postMessage({
                 type: 'canva-design-clicked',
-                data: { 
-                  designId: design.id, 
+                data: {
+                  designId: design.id,
                   url: design.urls?.edit_url || design.urls?.view_url,
-                  design 
+                  design
                 }
               }, '*');
             }
           });
-          
+
           grid.appendChild(card);
         });
-        
+
         root.appendChild(grid);
-        
+
         // Pagination
         if (continuation) {
           const pagination = document.createElement('div');
           pagination.className = 'pagination';
-          pagination.innerHTML = `
-            <button class="pagination-button" data-action="load-more" data-continuation="${continuation}">
-              Load More Designs
-            </button>
-          `;
-          
-          pagination.querySelector('.pagination-button').addEventListener('click', () => {
+
+          const loadMoreBtn = document.createElement('button');
+          loadMoreBtn.className = 'pagination-button';
+          loadMoreBtn.dataset.action = 'load-more';
+          // continuation is an opaque server token — store as data attribute, not rendered
+          loadMoreBtn.dataset.continuation = continuation;
+          loadMoreBtn.textContent = 'Load More Designs';
+          pagination.appendChild(loadMoreBtn);
+
+          loadMoreBtn.addEventListener('click', () => {
             if (window.parent && window.parent.postMessage) {
               window.parent.postMessage({
                 type: 'canva-load-more',
@@ -371,17 +431,28 @@
               }, '*');
             }
           });
-          
+
           root.appendChild(pagination);
         }
       } else {
         const empty = document.createElement('div');
         empty.className = 'empty-state';
-        empty.innerHTML = `
-          <div class="empty-icon">🎨</div>
-          <div class="empty-title">No designs found</div>
-          <div class="empty-description">Try adjusting your search criteria or create a new design.</div>
-        `;
+
+        const icon = document.createElement('div');
+        icon.className = 'empty-icon';
+        icon.textContent = '\uD83C\uDFA8';
+
+        const title = document.createElement('div');
+        title.className = 'empty-title';
+        title.textContent = 'No designs found';
+
+        const desc = document.createElement('div');
+        desc.className = 'empty-description';
+        desc.textContent = 'Try adjusting your search criteria or create a new design.';
+
+        empty.appendChild(icon);
+        empty.appendChild(title);
+        empty.appendChild(desc);
         root.appendChild(empty);
       }
     })();

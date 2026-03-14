@@ -206,117 +206,141 @@
     (function() {
       const props = window.__WIDGET_PROPS__ || {};
       const { candidates = [], job_id = null } = props;
-      
+
       const root = document.getElementById('root');
       let selectedCandidateId = null;
-      
-      // Header
+
+      // Header — static content only, no API data
       const header = document.createElement('div');
       header.className = 'header';
-      header.innerHTML = `
-        <h1>✨ AI Generated Designs</h1>
-        <p>Select a design to create it in your Canva account</p>
-      `;
+      const h1 = document.createElement('h1');
+      h1.textContent = 'AI Generated Designs';
+      const p = document.createElement('p');
+      p.textContent = 'Select a design to create it in your Canva account';
+      header.appendChild(h1);
+      header.appendChild(p);
       root.appendChild(header);
-      
+
       if (candidates && candidates.length > 0) {
         const grid = document.createElement('div');
         grid.className = 'candidates-grid';
-        
+
         candidates.forEach((candidate, index) => {
           const card = document.createElement('div');
           card.className = 'candidate-card';
           card.dataset.candidateId = candidate.id;
-          
-          card.innerHTML = `
-            <div class="candidate-thumbnail-container">
-              <img 
-                src="${candidate.thumbnail_url || candidate.preview_url || 'https://via.placeholder.com/400x225?text=Design+Candidate'}" 
-                class="candidate-thumbnail" 
-                alt="Design candidate ${index + 1}"
-                loading="lazy"
-              >
-              <div class="candidate-badge">Candidate ${index + 1}</div>
-            </div>
-            <div class="candidate-info">
-              <div class="candidate-title">Design Option ${index + 1}</div>
-              <div class="candidate-actions">
-                <button class="action-button primary" data-action="select">
-                  Select & Create
-                </button>
-                <button class="action-button" data-action="preview">
-                  Preview
-                </button>
-              </div>
-            </div>
-          `;
-          
-          // Add click handlers
-          const selectButton = card.querySelector('[data-action="select"]');
-          const previewButton = card.querySelector('[data-action="preview"]');
-          
+
+          // Thumbnail container
+          const thumbContainer = document.createElement('div');
+          thumbContainer.className = 'candidate-thumbnail-container';
+
+          const img = document.createElement('img');
+          img.src = candidate.thumbnail_url || candidate.preview_url || 'https://via.placeholder.com/400x225?text=Design+Candidate';
+          img.className = 'candidate-thumbnail';
+          img.alt = 'Design candidate ' + (index + 1);
+          img.loading = 'lazy';
+          thumbContainer.appendChild(img);
+
+          const badgeEl = document.createElement('div');
+          badgeEl.className = 'candidate-badge';
+          badgeEl.textContent = 'Candidate ' + (index + 1);
+          thumbContainer.appendChild(badgeEl);
+
+          card.appendChild(thumbContainer);
+
+          // Info section
+          const infoEl = document.createElement('div');
+          infoEl.className = 'candidate-info';
+
+          const titleEl = document.createElement('div');
+          titleEl.className = 'candidate-title';
+          titleEl.textContent = 'Design Option ' + (index + 1);
+          infoEl.appendChild(titleEl);
+
+          const actionsEl = document.createElement('div');
+          actionsEl.className = 'candidate-actions';
+
+          const selectButton = document.createElement('button');
+          selectButton.className = 'action-button primary';
+          selectButton.dataset.action = 'select';
+          selectButton.textContent = 'Select & Create';
+          actionsEl.appendChild(selectButton);
+
+          const previewButton = document.createElement('button');
+          previewButton.className = 'action-button';
+          previewButton.dataset.action = 'preview';
+          previewButton.textContent = 'Preview';
+          actionsEl.appendChild(previewButton);
+
+          infoEl.appendChild(actionsEl);
+          card.appendChild(infoEl);
+
+          // Click handlers
           selectButton.addEventListener('click', (e) => {
             e.stopPropagation();
-            
-            // Update selected state
+
             document.querySelectorAll('.candidate-card').forEach(c => {
               c.classList.remove('selected');
               c.querySelector('.selected-badge')?.remove();
             });
-            
+
             card.classList.add('selected');
             selectedCandidateId = candidate.id;
-            
-            // Add selected badge
-            const badge = document.createElement('div');
-            badge.className = 'selected-badge';
-            badge.innerHTML = '✓';
-            card.querySelector('.candidate-thumbnail-container').appendChild(badge);
-            
-            // Send message to parent
+
+            const selectedBadge = document.createElement('div');
+            selectedBadge.className = 'selected-badge';
+            selectedBadge.textContent = '\u2713';
+            card.querySelector('.candidate-thumbnail-container').appendChild(selectedBadge);
+
             if (window.parent && window.parent.postMessage) {
               window.parent.postMessage({
                 type: 'canva-create-from-candidate',
-                data: { 
-                  jobId: job_id, 
-                  candidateId: candidate.id,
-                  candidate 
-                }
+                data: { jobId: job_id, candidateId: candidate.id, candidate }
               }, '*');
             }
           });
-          
+
           previewButton.addEventListener('click', (e) => {
             e.stopPropagation();
             if (window.parent && window.parent.postMessage) {
               window.parent.postMessage({
                 type: 'canva-preview-candidate',
-                data: { 
+                data: {
                   candidateId: candidate.id,
                   previewUrl: candidate.preview_url || candidate.url,
-                  candidate 
+                  candidate
                 }
               }, '*');
             }
           });
-          
-          // Card click handler
+
           card.addEventListener('click', () => {
             previewButton.click();
           });
-          
+
           grid.appendChild(card);
         });
-        
+
         root.appendChild(grid);
       } else {
         const empty = document.createElement('div');
         empty.className = 'empty-state';
-        empty.innerHTML = `
-          <div class="empty-icon">🎨</div>
-          <div class="empty-title">No design candidates generated</div>
-          <div class="empty-description">Try providing a more detailed description of what you want to create.</div>
-        `;
+
+        const icon = document.createElement('div');
+        icon.className = 'empty-icon';
+        icon.textContent = '\uD83C\uDFA8';
+
+        const title = document.createElement('div');
+        title.className = 'empty-title';
+        title.textContent = 'No design candidates generated';
+
+        const desc = document.createElement('div');
+        desc.className = 'empty-description';
+        desc.textContent = 'Try providing a more detailed description of what you want to create.';
+
+        empty.appendChild(icon);
+        empty.appendChild(title);
+        empty.appendChild(desc);
         root.appendChild(empty);
       }
     })();

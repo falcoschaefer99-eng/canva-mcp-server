@@ -9,7 +9,7 @@
 
 1. **Initialize Railway Project**
 ```bash
-cd /Users/reedvogt/Documents/GitHub/canva-mcp-server
+cd canva-mcp-server
 railway init
 ```
 

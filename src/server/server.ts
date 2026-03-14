@@ -27,10 +27,13 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 
+// Local type alias for JSON Schema object — matches MCP SDK's Tool["inputSchema"]
+type ToolInputSchema = Tool["inputSchema"];
+
 // Canva OAuth configuration
 const CANVA_CLIENT_ID = process.env.CANVA_CLIENT_ID || "";
 const CANVA_CLIENT_SECRET = process.env.CANVA_CLIENT_SECRET || "";
-const CANVA_REDIRECT_URI = process.env.CANVA_REDIRECT_URI || "http://0.0.0.0:8001/auth/callback";
+const CANVA_REDIRECT_URI = process.env.CANVA_REDIRECT_URI || "http://127.0.0.1:8001/auth/callback";
 const CANVA_API_BASE = "https://api.canva.com/rest/v1";
 
 type CanvaWidget = {
@@ -40,7 +43,6 @@ type CanvaWidget = {
   invoking: string;
   invoked: string;
   html: string;
-  responseText: string;
 };
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -111,7 +113,6 @@ const widgets: CanvaWidget[] = [
     invoking: "Searching Canva",
     invoked: "Search complete",
     html: readWidgetHtml("canva-search-designs"),
-    responseText: "Found Canva designs",
   },
   {
     id: "design-generator",
@@ -120,7 +121,6 @@ const widgets: CanvaWidget[] = [
     invoking: "Generating design",
     invoked: "Design generated",
     html: readWidgetHtml("canva-design-generator"),
-    responseText: "Generated design candidates",
   },
   {
     id: "design-editor",
@@ -129,7 +129,6 @@ const widgets: CanvaWidget[] = [
     invoking: "Opening editor",
     invoked: "Editor ready",
     html: readWidgetHtml("canva-design-editor"),
-    responseText: "Design editor opened",
   },
 ];
 
@@ -141,8 +140,8 @@ widgets.forEach((widget) => {
   widgetsByUri.set(widget.templateUri, widget);
 });
 
-// Tool input schemas
-const uploadAssetFromUrlSchema = {
+// Tool input schemas — typed as ToolInputSchema to avoid `as any` casts at usage sites
+const uploadAssetFromUrlSchema: ToolInputSchema = {
   type: "object",
   properties: {
     name: {
@@ -158,7 +157,7 @@ const uploadAssetFromUrlSchema = {
   additionalProperties: false,
 };
 
-const searchDesignsSchema = {
+const searchDesignsSchema: ToolInputSchema = {
   type: "object",
   properties: {
     query: {
@@ -183,7 +182,7 @@ const searchDesignsSchema = {
   additionalProperties: false,
 };
 
-const getDesignSchema = {
+const getDesignSchema: ToolInputSchema = {
   type: "object",
   properties: {
     designId: {
@@ -195,7 +194,7 @@ const getDesignSchema = {
   additionalProperties: false,
 };
 
-const getDesignPagesSchema = {
+const getDesignPagesSchema: ToolInputSchema = {
   type: "object",
   properties: {
     designId: {
@@ -215,7 +214,7 @@ const getDesignPagesSchema = {
   additionalProperties: false,
 };
 
-const getDesignContentSchema = {
+const getDesignContentSchema: ToolInputSchema = {
   type: "object",
   properties: {
     designId: {
@@ -227,7 +226,7 @@ const getDesignContentSchema = {
   additionalProperties: false,
 };
 
-const createFolderSchema = {
+const createFolderSchema: ToolInputSchema = {
   type: "object",
   properties: {
     name: {
@@ -243,7 +242,7 @@ const createFolderSchema = {
   additionalProperties: false,
 };
 
-const moveItemToFolderSchema = {
+const moveItemToFolderSchema: ToolInputSchema = {
   type: "object",
   properties: {
     itemId: {
@@ -259,7 +258,7 @@ const moveItemToFolderSchema = {
   additionalProperties: false,
 };
 
-const listFolderItemsSchema = {
+const listFolderItemsSchema: ToolInputSchema = {
   type: "object",
   properties: {
     folderId: {
@@ -280,7 +279,7 @@ const listFolderItemsSchema = {
   additionalProperties: false,
 };
 
-const commentOnDesignSchema = {
+const commentOnDesignSchema: ToolInputSchema = {
   type: "object",
   properties: {
     designId: {
@@ -296,7 +295,7 @@ const commentOnDesignSchema = {
   additionalProperties: false,
 };
 
-const listCommentsSchema = {
+const listCommentsSchema: ToolInputSchema = {
   type: "object",
   properties: {
     designId: {
@@ -317,7 +316,7 @@ const listCommentsSchema = {
   additionalProperties: false,
 };
 
-const listRepliesSchema = {
+const listRepliesSchema: ToolInputSchema = {
   type: "object",
   properties: {
     designId: {
@@ -337,7 +336,7 @@ const listRepliesSchema = {
   additionalProperties: false,
 };
 
-const replyToCommentSchema = {
+const replyToCommentSchema: ToolInputSchema = {
   type: "object",
   properties: {
     designId: {
@@ -357,7 +356,7 @@ const replyToCommentSchema = {
   additionalProperties: false,
 };
 
-const generateDesignSchema = {
+const generateDesignSchema: ToolInputSchema = {
   type: "object",
   properties: {
     query: {
@@ -376,7 +375,7 @@ const generateDesignSchema = {
   additionalProperties: false,
 };
 
-const createDesignFromCandidateSchema = {
+const createDesignFromCandidateSchema: ToolInputSchema = {
   type: "object",
   properties: {
     jobId: {
@@ -392,7 +391,7 @@ const createDesignFromCandidateSchema = {
   additionalProperties: false,
 };
 
-const startEditingTransactionSchema = {
+const startEditingTransactionSchema: ToolInputSchema = {
   type: "object",
   properties: {
     designId: {
@@ -404,7 +403,7 @@ const startEditingTransactionSchema = {
   additionalProperties: false,
 };
 
-const performEditingOperationsSchema = {
+const performEditingOperationsSchema: ToolInputSchema = {
   type: "object",
   properties: {
     transactionId: {
@@ -423,7 +422,7 @@ const performEditingOperationsSchema = {
   additionalProperties: false,
 };
 
-const commitEditingTransactionSchema = {
+const commitEditingTransactionSchema: ToolInputSchema = {
   type: "object",
   properties: {
     transactionId: {
@@ -435,7 +434,7 @@ const commitEditingTransactionSchema = {
   additionalProperties: false,
 };
 
-const cancelEditingTransactionSchema = {
+const cancelEditingTransactionSchema: ToolInputSchema = {
   type: "object",
   properties: {
     transactionId: {
@@ -447,7 +446,7 @@ const cancelEditingTransactionSchema = {
   additionalProperties: false,
 };
 
-const getDesignThumbnailSchema = {
+const getDesignThumbnailSchema: ToolInputSchema = {
   type: "object",
   properties: {
     transactionId: {
@@ -463,7 +462,7 @@ const getDesignThumbnailSchema = {
   additionalProperties: false,
 };
 
-const getAssetsSchema = {
+const getAssetsSchema: ToolInputSchema = {
   type: "object",
   properties: {
     assetIds: {
@@ -560,7 +559,7 @@ const startEditingTransactionParser = z.object({
 
 const performEditingOperationsParser = z.object({
   transactionId: z.string(),
-  operations: z.array(z.any()),
+  operations: z.array(z.object({ type: z.string() }).passthrough()),
 });
 
 const commitEditingTransactionParser = z.object({
@@ -584,7 +583,7 @@ const tools: Tool[] = [
   {
     name: "upload-asset-from-url",
     description: 'Upload an asset (e.g. an image, a video) from a URL into Canva. If the API call returns "Missing scopes: [asset:write]", you should ask the user to disconnect and reconnect their connector. This will generate a new access token with the required scope for this tool.',
-    inputSchema: uploadAssetFromUrlSchema as any,
+    inputSchema: uploadAssetFromUrlSchema,
     _meta: {
       "openai/widgetAccessible": false,
       "openai/toolInvocation/invoking": "Uploading asset to Canva",
@@ -599,7 +598,7 @@ const tools: Tool[] = [
   {
     name: "search-designs",
     description: "Search docs, presentations, videos, whiteboards, sheets, and other designs in Canva. Use 'query' parameter to search by title or content. If 'query' is used, 'sortBy' must be set to 'relevance'. Filter by 'any' ownership unless specified. Sort by relevance unless specified. Use the continuation token to get the next page of results, if needed.",
-    inputSchema: searchDesignsSchema as any,
+    inputSchema: searchDesignsSchema,
     _meta: widgetMeta(widgetsById.get("search-designs")!),
     annotations: {
       destructiveHint: false,
@@ -610,7 +609,7 @@ const tools: Tool[] = [
   {
     name: "get-design",
     description: "Get detailed information about a Canva design, such as a doc, presentation, whiteboard, video, or sheet. This includes design owner information, title, URLs for editing and viewing, thumbnail, created/updated time, and page count. This tool doesn't work on folders or images. You must provide the design ID, which you can find by using the `search-designs` or `list-folder-items` tools.",
-    inputSchema: getDesignSchema as any,
+    inputSchema: getDesignSchema,
     annotations: {
       destructiveHint: false,
       openWorldHint: false,
@@ -620,7 +619,7 @@ const tools: Tool[] = [
   {
     name: "get-design-pages",
     description: "Get a list of pages in a Canva design, such as a presentation. Each page includes its index and thumbnail. This tool doesn't work on designs that don't have pages (e.g. Canva docs). You must provide the design ID, which you can find using tools like `search-designs` or `list-folder-items`. You can use 'offset' and 'limit' to paginate through the pages. Use `get-design` to find out the total number of pages, if needed.",
-    inputSchema: getDesignPagesSchema as any,
+    inputSchema: getDesignPagesSchema,
     annotations: {
       destructiveHint: false,
       openWorldHint: false,
@@ -630,7 +629,7 @@ const tools: Tool[] = [
   {
     name: "get-design-content",
     description: "Get the text content of a doc, presentation, whiteboard, social media post, sheet, and other designs in Canva. Use this when you only need to read text content without making changes. IMPORTANT: If the user wants to edit, update, change, translate, or fix content, use `start-editing-transaction` instead as it shows content AND enables editing. You must provide the design ID, which you can find with the `search-designs` tool. When given a URL to a Canva design, you can extract the design ID from the URL. Do not use web search to get the content of a design as the content is not accessible to the public. Example URL: https://www.canva.com/design/{design_id}.",
-    inputSchema: getDesignContentSchema as any,
+    inputSchema: getDesignContentSchema,
     annotations: {
       destructiveHint: false,
       openWorldHint: false,
@@ -640,7 +639,7 @@ const tools: Tool[] = [
   {
     name: "create-folder",
     description: "Create a new folder in Canva. You can create it at the root level or inside another folder.",
-    inputSchema: createFolderSchema as any,
+    inputSchema: createFolderSchema,
     annotations: {
       destructiveHint: false,
       openWorldHint: false,
@@ -650,7 +649,7 @@ const tools: Tool[] = [
   {
     name: "move-item-to-folder",
     description: "Move items (designs, folders, images) to a specified Canva folder",
-    inputSchema: moveItemToFolderSchema as any,
+    inputSchema: moveItemToFolderSchema,
     annotations: {
       destructiveHint: false,
       openWorldHint: false,
@@ -660,7 +659,7 @@ const tools: Tool[] = [
   {
     name: "list-folder-items",
     description: "List items in a Canva folder. An item can be a design, folder, or image. You can filter by item type and sort the results. Use the continuation token to get the next page of results if needed.",
-    inputSchema: listFolderItemsSchema as any,
+    inputSchema: listFolderItemsSchema,
     annotations: {
       destructiveHint: false,
       openWorldHint: false,
@@ -670,7 +669,7 @@ const tools: Tool[] = [
   {
     name: "comment-on-design",
     description: "Add a comment on a Canva design. You need to provide the design ID and the message text. The comment will be added to the design and visible to all users with access to the design.",
-    inputSchema: commentOnDesignSchema as any,
+    inputSchema: commentOnDesignSchema,
     annotations: {
       destructiveHint: false,
       openWorldHint: false,
@@ -680,7 +679,7 @@ const tools: Tool[] = [
   {
     name: "list-comments",
     description: "Get a list of comments for a particular Canva design. Comments are discussions attached to designs that help teams collaborate. Each comment can contain replies, mentions, and can be marked as resolved or unresolved. You need to provide the design ID, which you can find using the `search-designs` tool. Use the continuation token to get the next page of results, if needed. You can filter comments by their resolution status (resolved or unresolved) using the comment_resolution parameter.",
-    inputSchema: listCommentsSchema as any,
+    inputSchema: listCommentsSchema,
     annotations: {
       destructiveHint: false,
       openWorldHint: false,
@@ -690,7 +689,7 @@ const tools: Tool[] = [
   {
     name: "list-replies",
     description: "Get a list of replies for a specific comment on a Canva design. Comments can contain multiple replies from different users. These replies help teams collaborate by allowing discussion on a specific comment. You need to provide the design ID and comment ID. You can find the design ID using the `search-designs` tool and the comment ID using the `list-comments` tool. Use the continuation token to get the next page of results, if needed.",
-    inputSchema: listRepliesSchema as any,
+    inputSchema: listRepliesSchema,
     annotations: {
       destructiveHint: false,
       openWorldHint: false,
@@ -700,7 +699,7 @@ const tools: Tool[] = [
   {
     name: "reply-to-comment",
     description: "Reply to an existing comment on a Canva design. You need to provide the design ID, comment ID, and your reply message. The reply will be added to the specified comment and visible to all users with access to the design.",
-    inputSchema: replyToCommentSchema as any,
+    inputSchema: replyToCommentSchema,
     annotations: {
       destructiveHint: false,
       openWorldHint: false,
@@ -722,7 +721,7 @@ The tool will return a list of generated design candidates, including a candidat
 Before editing, exporting, or resizing a generated design, follow these steps:
 1. call 'create-design-from-candidate' tool with 'job_id' and 'candidate_id' of the selected design
 2. call other tools with 'design_id' in the response`,
-    inputSchema: generateDesignSchema as any,
+    inputSchema: generateDesignSchema,
     _meta: widgetMeta(widgetsById.get("design-generator")!),
     annotations: {
       destructiveHint: false,
@@ -733,7 +732,7 @@ Before editing, exporting, or resizing a generated design, follow these steps:
   {
     name: "create-design-from-candidate",
     description: "Create a new Canva design from a generation job candidate ID. This converts an AI-generated design candidate into an editable Canva design. If successful, returns a design summary containing a design ID that can be used with the editing tools. To make changes to the design, first call this tool with the candidate_id from generate-design results, then use the returned design_id with start-editing-transaction and subsequent editing tools.",
-    inputSchema: createDesignFromCandidateSchema as any,
+    inputSchema: createDesignFromCandidateSchema,
     annotations: {
       destructiveHint: false,
       openWorldHint: false,
@@ -743,7 +742,7 @@ Before editing, exporting, or resizing a generated design, follow these steps:
   {
     name: "start-editing-transaction",
     description: "Start an editing session for a Canva design. Use this tool FIRST whenever a user wants to make ANY changes or examine ALL content of a design, including: - Translate text to another language - Edit or replace content - Update titles - Replace images - Fix typos or formatting - Auditing or reviewing content. This tool shows you all the content that can be modified AND provides an editing transaction ID for making changes. The `transaction_id` returned in the tool response MUST be remembered and MUST be used in all subsequent tool calls related to this specific editing transaction. Editing operations must be performed by the `perform-editing-operations` tool. To save the changes made in the transaction, use the `commit-editing-transaction` tool. To discard the changes made in the transaction, use the `cancel-editing-transaction` tool. IMPORTANT: ALWAYS ALWAYS ALWAYS show the preview to the user of EACH thumbnail you get in the response in the chat, EVERY SINGLE TIME you call this tool",
-    inputSchema: startEditingTransactionSchema as any,
+    inputSchema: startEditingTransactionSchema,
     _meta: widgetMeta(widgetsById.get("design-editor")!),
     annotations: {
       destructiveHint: false,
@@ -754,7 +753,7 @@ Before editing, exporting, or resizing a generated design, follow these steps:
   {
     name: "perform-editing-operations",
     description: "Perform editing operations on a design. You can use this tool to update the title, replace text, and replace media in a design. This tool needs to be used with the `start-editing-transaction` tool to obtain an editing transaction ID. Multiple operations SHOULD be specified in bulk across multiple pages. Always call this tool to apply the requested edits directly. This is safe: changes are temporary until committed. Do NOT pause for user confirmation before using this tool. After performing ALL operations requested by the user, always confirm with the user before finalizing changes using the `commit-editing-transaction` tool. This tool will return the thumbnail of the first page that is updated. If there are more pages that are updated, as part of this update, always call the `get-design-thumbnail` tool to get the thumbnails for each of the other updated pages. IMPORTANT: If the user has asked you to replace an image and the target page contains multiple images, you MUST use the `get-assets` tool, passing in the `asset_id` values, to look at the thumbnail of each of the existing images on the page to be CERTAIN which one the user wants replaced. Thumbnails returned by this tool are ALWAYS user-relevant and you need to render them directly using the full thumbnail URL including time-limited query parameters such as X-Amz-Algorithm, X-Amz-Credential, and X-Amz-Signature.",
-    inputSchema: performEditingOperationsSchema as any,
+    inputSchema: performEditingOperationsSchema,
     annotations: {
       destructiveHint: false,
       openWorldHint: false,
@@ -764,7 +763,7 @@ Before editing, exporting, or resizing a generated design, follow these steps:
   {
     name: "commit-editing-transaction",
     description: 'Commit an editing transaction. This will save all the changes made to the design in the specified editing transaction. CRITICAL: You must ALWAYS ask the user to explicitly approve saving the changes before calling this tool. Show them what changes were made and ask "Would you like me to save these changes to your design?" Wait for their clear approval before proceeding. After successfully saving changes always provide the user with a direct link to open their design in Canva for review. Use the link they gave you or from the get-design tool. All editing operations are temporary until successfully committed. If the commit fails, ALL changes made during the transaction are lost and no changes are saved to the actual design. Users must start a new editing transaction to retry any failed operations. Once an editing transaction has been committed, the `transaction_id` for that editing transaction becomes invalid and should no longer be used.',
-    inputSchema: commitEditingTransactionSchema as any,
+    inputSchema: commitEditingTransactionSchema,
     annotations: {
       destructiveHint: true,
       openWorldHint: false,
@@ -774,7 +773,7 @@ Before editing, exporting, or resizing a generated design, follow these steps:
   {
     name: "cancel-editing-transaction",
     description: "Cancel an editing transaction. This will discard all changes made to the design in the specified editing transaction. Once an editing transaction has been cancelled, the `transaction_id` for that editing transaction becomes invalid and should no longer be used.",
-    inputSchema: cancelEditingTransactionSchema as any,
+    inputSchema: cancelEditingTransactionSchema,
     annotations: {
       destructiveHint: false,
       openWorldHint: false,
@@ -784,7 +783,7 @@ Before editing, exporting, or resizing a generated design, follow these steps:
   {
     name: "get-design-thumbnail",
     description: "Get the thumbnail for a particular page of the design in the specified editing transaction. This tool needs to be used with the `start-editing-transaction` tool to obtain an editing transaction ID. You need to provide the transaction ID and a page index to get the thumbnail of that particular page. Each call can only get the thumbnail for one page. Retrieving the thumbnails for multiple pages will require multiple calls of this tool. IMPORTANT: ALWAYS ALWAYS ALWAYS show the preview to the user of EACH thumbnail you get in the response in the chat, EVERY SINGLE TIME you call this tool",
-    inputSchema: getDesignThumbnailSchema as any,
+    inputSchema: getDesignThumbnailSchema,
     annotations: {
       destructiveHint: false,
       openWorldHint: false,
@@ -794,7 +793,7 @@ Before editing, exporting, or resizing a generated design, follow these steps:
   {
     name: "get-assets",
     description: "Get metadata for particular assets by a list of their IDs. Returns information about ALL the assets including their names, tags, types, creation dates, and thumbnails. Thumbnails returned are in the same order as the list of asset IDs requested. When editing a page with more than one image or video asset ALWAYS request ALL assets from that page. IMPORTANT: ALWAYS ALWAYS ALWAYS show the preview to the user of EACH thumbnail you get in the response in the chat, EVERY SINGLE TIME you call this tool",
-    inputSchema: getAssetsSchema as any,
+    inputSchema: getAssetsSchema,
     annotations: {
       destructiveHint: false,
       openWorldHint: false,
@@ -953,7 +952,8 @@ async function canvaApiRequest(
 
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(`Canva API error: ${response.status} ${error}`);
+    console.error('Canva API error:', response.status, error);
+    throw new Error(`Canva API error: ${response.status}`);
   }
 
   if (response.status === 204) {
@@ -1549,7 +1549,6 @@ const postPath = "/mcp/messages";
 const authCallbackPath = "/auth/callback";
 
 async function handleSseRequest(res: ServerResponse, sessionId?: string, authHeader?: string) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
   const actualSessionId = sessionId || crypto.randomBytes(16).toString("hex");
   const server = createCanvaServer(actualSessionId);
   const transport = new SSEServerTransport(postPath, res);
@@ -1594,8 +1593,6 @@ async function handlePostMessage(
   res: ServerResponse,
   url: URL
 ) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Headers", "content-type, authorization");
   const sessionId = url.searchParams.get("sessionId");
 
   if (!sessionId) {
@@ -1611,7 +1608,7 @@ async function handlePostMessage(
   }
 
   // Extract Authorization header from HTTP request and store in session
-  const authHeader = req.headers.authorization || req.headers.Authorization;
+  const authHeader = req.headers.authorization;
   if (authHeader) {
     const authHeaderStr = typeof authHeader === "string" ? authHeader : authHeader[0];
     session.authHeader = authHeaderStr;
@@ -1645,7 +1642,7 @@ async function handleAuthCallback(req: IncomingMessage, res: ServerResponse, url
       <html>
         <body>
           <h1>Authentication Failed</h1>
-          <p>Error: ${error}</p>
+          <p>Error: ${escapeHtml(error)}</p>
           <p>Please try again.</p>
         </body>
       </html>
@@ -1699,11 +1696,12 @@ async function handleAuthCallback(req: IncomingMessage, res: ServerResponse, url
     `);
   } catch (error: any) {
     console.error("Failed to exchange code for token", error);
+    const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
     res.writeHead(500, { "Content-Type": "text/html" }).end(`
       <html>
         <body>
           <h1>Authentication Error</h1>
-          <p>${error.message}</p>
+          <p>${escapeHtml(errorMessage)}</p>
           <p>Please try again.</p>
         </body>
       </html>
@@ -1714,21 +1712,57 @@ async function handleAuthCallback(req: IncomingMessage, res: ServerResponse, url
 const portEnv = Number(process.env.PORT ?? 8001);
 const port = Number.isFinite(portEnv) ? portEnv : 8001;
 
+// HTML entity encoder — no dependencies, covers XSS vectors
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;");
+}
+
+// Auth middleware for MCP endpoints
+// If MCP_AUTH_TOKEN is set, require matching Bearer token. Dev mode allows unauthenticated.
+const MCP_AUTH_TOKEN = process.env.MCP_AUTH_TOKEN || "";
+if (!MCP_AUTH_TOKEN) {
+  console.warn("[WARN] MCP_AUTH_TOKEN is not set. Running in dev mode — MCP endpoints are unauthenticated.");
+}
+
+function checkMcpAuth(req: IncomingMessage, res: ServerResponse): boolean {
+  if (!MCP_AUTH_TOKEN) {
+    return true; // dev mode
+  }
+  const authHeader = req.headers.authorization || "";
+  const token = typeof authHeader === "string"
+    ? authHeader.replace(/^Bearer\s+/i, "")
+    : "";
+  // Timing-safe comparison
+  const expected = Buffer.from(MCP_AUTH_TOKEN);
+  const provided = Buffer.from(token.length === expected.length ? token : "\0".repeat(expected.length));
+  const match = crypto.timingSafeEqual(expected, provided) && token.length === MCP_AUTH_TOKEN.length;
+  if (!match) {
+    res.writeHead(401, { "WWW-Authenticate": "Bearer" }).end("Unauthorized");
+    return false;
+  }
+  return true;
+}
+
 // Helper function to set CORS headers
+// Only reflects origin when it is in the allowlist. Wildcard fallback is intentionally removed.
+// Configure allowed origins via CORS_ORIGINS env var (comma-separated), default: http://localhost:5173
+const rawCorsOrigins = process.env.CORS_ORIGINS || "http://localhost:5173";
+const allowedCorsOrigins = rawCorsOrigins.split(",").map((o) => o.trim()).filter(Boolean);
+
 function setCorsHeaders(res: ServerResponse, origin?: string) {
-  const allowedOrigins = [
-    'https://zerotwo.ai',
-    'http://localhost:3000',
-    'http://localhost:5173', // Vite dev server
-  ];
-  
-  const requestOrigin = origin || '*';
-  const allowOrigin = allowedOrigins.includes(requestOrigin) ? requestOrigin : '*';
-  
-  res.setHeader("Access-Control-Allow-Origin", allowOrigin);
+  const allowOrigin = origin && allowedCorsOrigins.includes(origin) ? origin : null;
+
+  if (allowOrigin) {
+    res.setHeader("Access-Control-Allow-Origin", allowOrigin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+  }
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "content-type, authorization");
-  res.setHeader("Access-Control-Allow-Credentials", "true");
 }
 
 const httpServer = createServer(
@@ -1755,14 +1789,16 @@ const httpServer = createServer(
     }
 
     if (req.method === "GET" && url.pathname === ssePath) {
+      if (!checkMcpAuth(req, res)) return;
       // Extract Authorization header if present
-      const authHeader = req.headers.authorization || req.headers.Authorization;
+      const authHeader = req.headers.authorization;
       const authHeaderStr = authHeader ? (typeof authHeader === "string" ? authHeader : authHeader[0]) : undefined;
       await handleSseRequest(res, undefined, authHeaderStr);
       return;
     }
 
     if (req.method === "POST" && url.pathname === postPath) {
+      if (!checkMcpAuth(req, res)) return;
       await handlePostMessage(req, res, url);
       return;
     }
@@ -1818,11 +1854,11 @@ httpServer.on("clientError", (err: Error, socket) => {
   socket.end("HTTP/1.1 400 Bad Request\r\n\r\n");
 });
 
-httpServer.listen(port, '0.0.0.0', () => {
-  console.log(`Canva MCP server listening on http://0.0.0.0:${port}`);
-  console.log(`  SSE stream: GET http://0.0.0.0:${port}${ssePath}`);
-  console.log(`  Message post endpoint: POST http://0.0.0.0:${port}${postPath}?sessionId=...`);
-  console.log(`  OAuth callback: GET http://0.0.0.0:${port}${authCallbackPath}`);
+httpServer.listen(port, '127.0.0.1', () => {
+  console.log(`Canva MCP server listening on http://127.0.0.1:${port}`);
+  console.log(`  SSE stream: GET http://127.0.0.1:${port}${ssePath}`);
+  console.log(`  Message post endpoint: POST http://127.0.0.1:${port}${postPath}?sessionId=...`);
+  console.log(`  OAuth callback: GET http://127.0.0.1:${port}${authCallbackPath}`);
   console.log(`\nMake sure to set your environment variables:`);
   console.log(`  CANVA_CLIENT_ID=<your_client_id>`);
   console.log(`  CANVA_CLIENT_SECRET=<your_client_secret>`);

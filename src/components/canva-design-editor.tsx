@@ -31,10 +31,12 @@ const CanvaDesignEditor: React.FC = () => {
   useEffect(() => {
     // Automatically start design session when component mounts
     if (transaction_id && window.parent && window.parent.postMessage) {
+      // NOTE: '*' is intentional — widget iframe cannot know parent origin at build time.
+      // Callers should verify message.type before acting on received messages.
       window.parent.postMessage({
         type: 'canva-start-design-session',
-        data: { 
-          transactionId: transaction_id 
+        data: {
+          transactionId: transaction_id
         }
       }, '*');
     }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useWidgetProps, useDisplayMode } from '../hooks';
+import { useWidgetProps } from '../hooks';
 import '../styles/index.css';
 import { cn } from '../lib/utils';
 
@@ -35,18 +35,20 @@ const CanvaSearchDesigns: React.FC = () => {
   });
 
   const { query, designs, continuation } = props;
-  const displayMode = useDisplayMode();
 
   const handleDesignClick = (design: Design) => {
     const url = design.urls?.edit_url || design.urls?.view_url;
     
     if (window.parent && window.parent.postMessage) {
+      // NOTE: '*' is intentional — this widget runs inside an iframe hosted by the AI client
+      // (e.g. ChatGPT, Claude), and we cannot know the parent origin at build time.
+      // Callers should verify message.type before acting on received messages.
       window.parent.postMessage({
         type: 'canva-design-clicked',
-        data: { 
-          designId: design.id, 
+        data: {
+          designId: design.id,
           url,
-          design 
+          design
         }
       }, '*');
     }
@@ -54,6 +56,7 @@ const CanvaSearchDesigns: React.FC = () => {
 
   const handleLoadMore = () => {
     if (window.parent && window.parent.postMessage) {
+      // NOTE: '*' is intentional — widget iframe cannot know parent origin at build time.
       window.parent.postMessage({
         type: 'canva-load-more',
         data: { continuation }

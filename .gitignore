@@ -6,11 +6,12 @@ dist/
 *.js.map
 *.d.ts
 
-# Environment variables
+# Environment variables and tokens
 .env
 .env.local
 .env.*.local
 .env.railway
+.canva-tokens.json
 
 # IDE
 .vscode/

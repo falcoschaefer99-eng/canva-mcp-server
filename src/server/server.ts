@@ -49,7 +49,24 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..", "..");
 const ASSETS_DIR = path.resolve(ROOT_DIR, "assets");
 
-// Store OAuth state and tokens in memory (use database in production)
+// Persistent token storage — survives server restarts and session reconnects
+const TOKEN_FILE = path.resolve(ROOT_DIR, ".canva-tokens.json");
+
+function loadPersistedTokens(): { accessToken: string; refreshToken: string; expiresAt: number } | null {
+  try {
+    if (fs.existsSync(TOKEN_FILE)) {
+      const data = JSON.parse(fs.readFileSync(TOKEN_FILE, "utf8"));
+      if (data.accessToken && data.refreshToken) return data;
+    }
+  } catch { /* ignore corrupt file */ }
+  return null;
+}
+
+function persistTokens(tokens: { accessToken: string; refreshToken: string; expiresAt: number }): void {
+  fs.writeFileSync(TOKEN_FILE, JSON.stringify(tokens, null, 2), "utf8");
+}
+
+// In-memory session map — populated from disk on new sessions
 const authSessions = new Map<string, { accessToken: string; refreshToken: string; expiresAt: number }>();
 const pendingAuthStates = new Map<string, { sessionId: string; createdAt: number; codeVerifier: string }>();
 
@@ -912,6 +929,12 @@ async function getValidAccessToken(sessionId: string): Promise<string> {
   const session = authSessions.get(sessionId);
   
   if (!session) {
+    // Try loading persisted tokens from disk
+    const persisted = loadPersistedTokens();
+    if (persisted) {
+      authSessions.set(sessionId, persisted);
+      return getValidAccessToken(sessionId);
+    }
     throw new Error("Not authenticated. Please authenticate with Canva first.");
   }
 
@@ -922,6 +945,7 @@ async function getValidAccessToken(sessionId: string): Promise<string> {
     session.accessToken = tokenData.access_token;
     session.expiresAt = Date.now() + tokenData.expires_in * 1000;
     authSessions.set(sessionId, session);
+    persistTokens(session);
   }
 
   return session.accessToken;
@@ -1564,12 +1588,15 @@ async function handleSseRequest(res: ServerResponse, sessionId?: string, authHea
   sessions.set(transport.sessionId, { server, transport, authHeader });
 
   transport.onclose = async () => {
-    const mappedSessionId = transportToSessionId.get(transport.sessionId);
+    const sessionId = transport.sessionId;
+    // Guard against recursive close (server.close triggers transport.onclose)
+    if (!sessions.has(sessionId)) return;
+    const mappedSessionId = transportToSessionId.get(sessionId);
     if (mappedSessionId) {
       sessionAuthHeaders.delete(mappedSessionId);
-      transportToSessionId.delete(transport.sessionId);
+      transportToSessionId.delete(sessionId);
     }
-    sessions.delete(transport.sessionId);
+    sessions.delete(sessionId);
     await server.close();
   };
 
@@ -1673,11 +1700,13 @@ async function handleAuthCallback(req: IncomingMessage, res: ServerResponse, url
   try {
     const tokenData = await exchangeCodeForToken(code, pendingAuth.codeVerifier);
     
-    authSessions.set(pendingAuth.sessionId, {
+    const tokens = {
       accessToken: tokenData.access_token,
       refreshToken: tokenData.refresh_token,
       expiresAt: Date.now() + tokenData.expires_in * 1000,
-    });
+    };
+    authSessions.set(pendingAuth.sessionId, tokens);
+    persistTokens(tokens);
 
     pendingAuthStates.delete(state);
 
